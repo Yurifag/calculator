@@ -8,7 +8,7 @@ public class Main {
         Expression expression = ExpressionFactory.createExpression(IOParser.mathInput());
         Function f = new Function(expression);
         print(f);
-        print(f.ofX(3.0D));
+        print(f.ofX(3.0D)); //Calculates result for specific x-Value
     }
 
 }
