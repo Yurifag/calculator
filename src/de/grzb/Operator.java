@@ -4,11 +4,11 @@ import java.util.Arrays;
 import java.util.List;
 
 class Operator implements IChainable {
-    private static Operator ADD        = new Operator("+", 1);
-    private static Operator SUBTRACT   = new Operator("-", 1);
-    private static Operator MULTIPLY   = new Operator("*", 0);
-    private static Operator DIVIDE     = new Operator("/", 0);
-    private static Operator POTENTIATE = new Operator("^", 2);
+    private static Operator ADD        = new Operator("+", 2);
+    private static Operator SUBTRACT   = new Operator("-", 2);
+    private static Operator MULTIPLY   = new Operator("*", 1);
+    private static Operator DIVIDE     = new Operator("/", 1);
+    private static Operator POTENTIATE = new Operator("^", 0);
 
     private final String name;
     private final int precedence;
