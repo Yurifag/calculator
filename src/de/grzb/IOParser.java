@@ -44,6 +44,9 @@ public class IOParser {
         return new Scanner(System.in).nextLine();
     }
 
+    /**
+     * Modifies the User's input, creates a List and adds the equation (modified by regex parameter)
+     */
     public static ArrayList<String> mathInput() {
         String input = input().toLowerCase().replace(" ", "").replace(",", ".");
         ArrayList<String> matches = new ArrayList<String>();
