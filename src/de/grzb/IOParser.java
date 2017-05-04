@@ -8,36 +8,8 @@ import java.util.regex.Pattern;
 public class IOParser {
     private static final Pattern mathPattern = Pattern.compile("\\d+|[+\\-*/^()]|x");
 
-    public static void print(String msg) {
-        System.out.printf(msg + "\n");
-    }
-
-    public static void print(int msg) {
-        print(Integer.toString(msg));
-    }
-
-    public static void print(Float msg) {
-        print(Float.toString(msg));
-    }
-
-    public static void print(Double msg) {
-        print(Double.toString(msg));
-    }
-
-    public static void print(Boolean msg) {
-        print(Boolean.toString(msg));
-    }
-
-    public static void print(Function function) {
-        print(function.toString());
-    }
-
-    public static void print(Number number) {
-        print(number.toString());
-    }
-
-    public static void print(ArrayList<?> list) {
-        print(list.toString());
+    public static void print(Object object) {
+        System.out.printf(object.toString() + "\n");
     }
 
     public static String input() {
