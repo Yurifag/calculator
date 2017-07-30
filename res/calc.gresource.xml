@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <gresources>
-  <gresource prefix="/org/gtk/calc">
-    <file preprocess="xml-stripblanks">Calc.glade</file>
-  </gresource>
+    <gresource prefix="/org/gtk/calc">
+        <file preprocess="xml-stripblanks">calc.glade</file>
+        <file>calc.css</file>
+    </gresource>
 </gresources>

@@ -145,8 +145,14 @@ GUI::GUI() : x_scale(32), y_scale(8), next_name(102), working(false) {
     /**
      * initialize GUI elements
      */
-    this->builder = Gtk::Builder::create_from_resource("/org/gtk/calc/Calc.glade");
+    this->builder = Gtk::Builder::create_from_resource("/org/gtk/calc/calc.glade");
     this->builder->get_widget("windowRoot", this->windowRoot);
+
+    Glib::RefPtr<Gtk::CssProvider> css = Gtk::CssProvider::create();
+    css->load_from_resource("/org/gtk/calc/calc.css");
+    Glib::RefPtr<Gtk::StyleContext> style = Gtk::StyleContext::create();
+    style->add_provider_for_screen(this->windowRoot->get_screen(), css, GTK_STYLE_PROVIDER_PRIORITY_USER);
+
     this->builder->get_widget("entryFunction", this->entryFunction);
     this->builder->get_widget("drawingArea", this->drawingArea);
     this->builder->get_widget("scaleX", this->scaleX);
@@ -160,9 +166,10 @@ GUI::GUI() : x_scale(32), y_scale(8), next_name(102), working(false) {
 
     // setup event handlers
     this->entryFunction->signal_key_release_event().connect([this] (GdkEventKey *key) {
+        this->entryFunction->get_style_context()->remove_class("invalid");
         Glib::ustring text = this->entryFunction->get_text();
-        if(key->keyval == KEYCODE_ENTER && !text.empty()) {
-            if(Parser::validate(text)) {
+        if(key->keyval == KEYCODE_ENTER) {
+            if(!text.empty() && Parser::validate(text)) {
                 Gtk::TreeRow row = *this->functionStore->append();
                 row[this->functionColumns.name] = std::string(1, this->next_name);
                 this->next_name++;
@@ -173,7 +180,7 @@ GUI::GUI() : x_scale(32), y_scale(8), next_name(102), working(false) {
                 this->redraw();
             }
             else {
-
+                this->entryFunction->get_style_context()->add_class("invalid");
             }
         }
         return false;

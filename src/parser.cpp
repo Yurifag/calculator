@@ -99,11 +99,6 @@ Operand* Parser::parse(Glib::ustring text) {
             if(!(Operator::is_operator(match) || match == "(") && matches.size() && !Operator::is_operator(matches[matches.size() - 1])) {
                 matches.push_back("*");
             }
-            /*
-            if((match == "(" || match == "x" || match == "e" || Function::is_func(match)) && matches.size() && is_number(matches[matches.size() - 1])) {
-                matches.push_back("*");
-            }
-            */
             matches.push_back(match);
         } while(match_info.next());
 

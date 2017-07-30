@@ -150,14 +150,6 @@ namespace util {
         return msg;
     }
 
-    void print(Glib::ustring msg) {
-        std::cout << msg << "\n";
-    }
-
-    void print(std::string msg) {
-        std::cout << msg << "\n";
-    }
-
     /**
     * @brief      remove first occurence of a character in a string
     *
@@ -168,21 +160,31 @@ namespace util {
     */
     std::string lremove_char(std::string text, char filter) {
         auto iter = std::find(text.begin(), text.end(), filter);
-        if(iter != text.end())
+        if(iter != text.end()) {
             text.erase(iter);
+        }
         return text;
     }
 
     bool is_number(std::string text) {
-        if(text == "e" || text == "pi" || text == "π") return true;
+        if(text == "e" || text == "pi" || text == "π") {
+            return true;
+        }
         text = lremove_char(lremove_char(text, '-'), '.');
         return !text.empty() && std::all_of(text.begin(), text.end(), ::isdigit);
     }
 
     long double parse_number(std::string text) {
-        if(!is_number(text)) throw std::invalid_argument(text + " is not a valid number!");
-        if(text == "e") return e;
-        if(text == "pi" || text == "π") return pi;
+        if(!is_number(text)) {
+            throw std::invalid_argument(text + " is not a valid number!");
+        }
+        else if(text == "e") {
+            return e;
+        }
+        else if(text == "pi" || text == "π") {
+            return pi;
+        }
+
         return std::stold(text);
     }
 
