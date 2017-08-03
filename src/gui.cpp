@@ -141,7 +141,7 @@ FunctionColumns::FunctionColumns() {
     this->add(this->zero);
 }
 
-GUI::GUI() : x_scale(32), y_scale(8), next_name(102), working(false) {
+GUI::GUI() : x_scale(32), y_scale(8), next_name(102), drag_start(0), dragging_x(false), dragging_y(false), working(false) {
     /**
      * initialize GUI elements
      */
@@ -241,6 +241,67 @@ GUI::GUI() : x_scale(32), y_scale(8), next_name(102), working(false) {
         context->rectangle(0, 0, this->image.pixbuf->get_width(), this->image.pixbuf->get_height());
         context->fill();
         return true;
+    });
+
+    this->drawingArea->add_events(Gdk::EventMask::POINTER_MOTION_MASK | Gdk::EventMask::BUTTON_PRESS_MASK | Gdk::EventMask::BUTTON_RELEASE_MASK);
+    this->drawingArea->signal_motion_notify_event().connect([this] (GdkEventMotion *motion) {
+        if(!(this->dragging_x || this->dragging_y)) {
+            int height = this->image.pixbuf->get_height();
+            int width = this->image.pixbuf->get_width();
+
+            if(motion->y > height / 2 - 20 && motion->y < height / 2 + 20 && motion->x > width / 2 - 20 && motion->x < width / 2 + 20) {
+                this->drawingArea->get_window()->set_cursor(Gdk::Cursor::create(Gdk::CursorType::LEFT_PTR));
+            }
+            else if(motion->y > height / 2 - 5 && motion->y < height / 2 + 5) {
+                this->drawingArea->get_window()->set_cursor(Gdk::Cursor::create(Gdk::CursorType::SB_H_DOUBLE_ARROW));
+            }
+            else if(motion->x > width / 2 - 5 && motion->x < width / 2 + 5) {
+                this->drawingArea->get_window()->set_cursor(Gdk::Cursor::create(Gdk::CursorType::SB_V_DOUBLE_ARROW));
+            }
+            else {
+                this->drawingArea->get_window()->set_cursor(Gdk::Cursor::create(Gdk::CursorType::LEFT_PTR));
+            }
+        }
+
+        return false;
+    });
+
+    this->drawingArea->signal_button_press_event().connect([this] (GdkEventButton *button) {
+        int height = this->image.pixbuf->get_height();
+        int width = this->image.pixbuf->get_width();
+
+        if(button->button == BUTTONCODE_MOUSE_LEFT && !(button->y > height / 2 - 20 && button->y < height / 2 + 20 && button->x > width / 2 - 20 && button->x < width / 2 + 20)) {
+            if(button->y > height / 2 - 5 && button->y < height / 2 + 5) {
+                this->dragging_x = true;
+                this->drag_start = button->x;
+            }
+            else if(button->x > width / 2 - 5 && button->x < width / 2 + 5) {
+                this->dragging_y = true;
+                this->drag_start = button->y;
+            }
+        }
+        return false;
+    });
+
+    this->drawingArea->signal_button_release_event().connect([this] (GdkEventButton *button) {
+        if(button->button == BUTTONCODE_MOUSE_LEFT && (this->dragging_x || this->dragging_y)) {
+            double long pos = this->dragging_x ? button->x : button->y;
+            double long max = this->dragging_x ? this->image.pixbuf->get_width() : this->image.pixbuf->get_height();
+            double long diff = this->drag_start < max / 2 ? -(pos - this->drag_start) : pos - this->drag_start;
+            double long zoom_factor = 1 + diff / max;
+            if(this->dragging_x) {
+                this->scaleX->set_value(this->scaleX->get_value() * zoom_factor);
+                this->x_scale = this->scaleX->get_value();
+            }
+            else {
+                this->scaleY->set_value(this->scaleY->get_value() * zoom_factor);
+                this->y_scale = this->scaleY->get_value();
+            }
+            this->redraw();
+            this->dragging_x = false;
+            this->dragging_y = false;
+        }
+        return false;
     });
 }
 GUI::~GUI() {}

@@ -50,6 +50,9 @@ class GUI {
     int                          x_scale;
     int                          y_scale;
     int                          next_name;
+    int                          drag_start;
+    bool                         dragging_x;
+    bool                         dragging_y;
     std::atomic<bool>            working;
 
     GUI();
