@@ -3,6 +3,7 @@
 #include <atomic>
 #include <expression.hpp>
 #include <gtkmm.h>
+#include <queue>
 
 class Image {
   public:
@@ -18,7 +19,7 @@ class Image {
     void draw_string(const Glib::ustring s, const long double x, const long double y);
     void flip(const bool horizontally);
     void clear();
-    Glib::RefPtr<Gdk::Pixbuf> draw_functions(Glib::RefPtr<Gtk::ListStore> functionStore, const int width, const int height, const int scale_x, const int scale_y);
+    Glib::RefPtr<Gdk::Pixbuf> draw_functions(Glib::RefPtr<Gtk::ListStore> function_store, const int width, const int height, const int scale_x, const int scale_y);
 };
 
 class FunctionColumns : public Gtk::TreeModel::ColumnRecord {
@@ -33,27 +34,28 @@ class FunctionColumns : public Gtk::TreeModel::ColumnRecord {
 
 class GUI {
   public:
-    Image                        image;
-    Glib::RefPtr<Gtk::Builder>   builder;
-    Gtk::Window                  *windowRoot;
-    Gtk::Grid                    *gridMain;
-    Gtk::Entry                   *entryFunction;
-    Gtk::DrawingArea             *drawingArea;
-    Gtk::Scale                   *scaleX;
-    Gtk::Scale                   *scaleY;
-    Gtk::TextView                *textViewResults;
-    Gtk::TreeView                *treeViewResults;
-    FunctionColumns              functionColumns;
-    Glib::RefPtr<Gtk::ListStore> functionStore;
-    Gtk::Button                  *buttonDerive;
-    Gtk::Button                  *buttonDelete;
-    int                          x_scale;
-    int                          y_scale;
-    int                          next_name;
-    int                          drag_start;
-    bool                         dragging_x;
-    bool                         dragging_y;
-    std::atomic<bool>            working;
+    Image                                 image;
+    Glib::RefPtr<Gtk::Builder>            builder;
+    Gtk::Window*                          window_root;
+    Gtk::Grid*                            grid_main;
+    Gtk::Entry*                           entry_function;
+    Gtk::DrawingArea*                     drawing_area;
+    Gtk::Scale*                           scale_x;
+    Gtk::Scale*                           scale_y;
+    Gtk::TextView*                        text_view_results;
+    Gtk::TreeView*                        tree_view_results;
+    FunctionColumns                       function_columns;
+    Glib::RefPtr<Gtk::ListStore>          function_store;
+    Gtk::Button*                          button_derive;
+    Gtk::Button*                          button_delete;
+    int                                   x_scale_val;
+    int                                   y_scale_val;
+    int                                   next_name;
+    int                                   drag_start;
+    bool                                  dragging_x;
+    bool                                  dragging_y;
+    std::atomic<bool>                     working;
+    std::queue<Glib::RefPtr<Gdk::Pixbuf>> render_queue;
 
     GUI();
     ~GUI();
@@ -62,5 +64,6 @@ class GUI {
      * @brief adapt canvas size to window size and draw graph according to f(x)
      */
     void redraw();
+    void drag_update(int x, int y);
 };
 

@@ -16,7 +16,7 @@ CPP_SOURCE       := $(SRC)/%.cpp
 
 CXXSOURCES       := $(wildcard $(SRC)/*.cpp)
 CXXOBJECTS       := $(CXXSOURCES:$(CPP_SOURCE)=$(OBJECT))
-CXXFLAGS         := $(INCLUDEDIRS) -std=gnu++14 -g -MMD
+CXXFLAGS         := $(INCLUDEDIRS) -std=gnu++14 $(DEBUG) -MMD
 CXX              := g++-7
 
 DEPENDENCIES     := $(CXXSOURCES:.cpp=.d)

@@ -53,13 +53,13 @@ void Image::clear() {
         }
     }
 }
-Glib::RefPtr<Gdk::Pixbuf> Image::draw_functions(Glib::RefPtr<Gtk::ListStore> functionStore, const int width, const int height, const int scale_x, const int scale_y) {
+Glib::RefPtr<Gdk::Pixbuf> Image::draw_functions(Glib::RefPtr<Gtk::ListStore> function_store, const int width, const int height, const int scale_x, const int scale_y) {
     int                      x, y, x_iter, y_iter, margin, i, i2, diff;
     Operand*                 function;
     Image                    image(width, height);
     Glib::ustring            label;
-    FunctionColumns          functionColumns;
-    Gtk::TreeModel::Children functions = functionStore->children();
+    FunctionColumns          function_columns;
+    Gtk::TreeModel::Children functions = function_store->children();
 
     image.clear();
     for(x_iter = 0; x_iter < width; ++x_iter) {
@@ -95,7 +95,7 @@ Glib::RefPtr<Gdk::Pixbuf> Image::draw_functions(Glib::RefPtr<Gtk::ListStore> fun
     std::vector<std::future<std::vector<int>>> futures;
 
     for(const Gtk::TreeRow row : functions) {
-        function = row[functionColumns.function];
+        function = row[function_columns.function];
         std::promise<std::vector<int>> promise;
         futures.push_back(promise.get_future());
         threads.push_back(std::thread([function, width, scale_y, scale_x] (std::promise<std::vector<int>> &&promise) {
@@ -115,7 +115,6 @@ Glib::RefPtr<Gdk::Pixbuf> Image::draw_functions(Glib::RefPtr<Gtk::ListStore> fun
         values = futures[i].get();
         for(x_iter = 0; x_iter < width; ++x_iter) {
             image.set_pixel(x_iter, height / 2 - values[x_iter]);
-
             if(x_iter && (std::abs(values[x_iter - 1]) <= height / 2 || std::abs(values[x_iter]) <= height / 2)) {
                 diff = values[x_iter] - values[x_iter - 1];
                 if(std::abs(diff) > height) {
@@ -141,65 +140,65 @@ FunctionColumns::FunctionColumns() {
     this->add(this->zero);
 }
 
-GUI::GUI() : x_scale(32), y_scale(8), next_name(102), drag_start(0), dragging_x(false), dragging_y(false), working(false) {
+GUI::GUI() : x_scale_val(32), y_scale_val(8), next_name(102), drag_start(0), dragging_x(false), dragging_y(false), working(false) {
     /**
      * initialize GUI elements
      */
     this->builder = Gtk::Builder::create_from_resource("/org/gtk/calc/calc.glade");
-    this->builder->get_widget("windowRoot", this->windowRoot);
+    this->builder->get_widget("window_root", this->window_root);
 
     Glib::RefPtr<Gtk::CssProvider> css = Gtk::CssProvider::create();
     css->load_from_resource("/org/gtk/calc/calc.css");
     Glib::RefPtr<Gtk::StyleContext> style = Gtk::StyleContext::create();
-    style->add_provider_for_screen(this->windowRoot->get_screen(), css, GTK_STYLE_PROVIDER_PRIORITY_USER);
+    style->add_provider_for_screen(this->window_root->get_screen(), css, GTK_STYLE_PROVIDER_PRIORITY_USER);
 
-    this->builder->get_widget("entryFunction", this->entryFunction);
-    this->builder->get_widget("drawingArea", this->drawingArea);
-    this->builder->get_widget("scaleX", this->scaleX);
-    this->builder->get_widget("scaleY", this->scaleY);
-    this->builder->get_widget("textViewResults", this->textViewResults);
-    this->builder->get_widget("treeViewResults", this->treeViewResults);
-    this->functionStore = Glib::RefPtr<Gtk::ListStore>::cast_dynamic(this->builder->get_object("functionStore"));
-    this->treeViewResults->set_model(this->functionStore);
-    this->builder->get_widget("buttonDerive", this->buttonDerive);
-    this->builder->get_widget("buttonDelete", this->buttonDelete);
+    this->builder->get_widget("entry_function", this->entry_function);
+    this->builder->get_widget("drawing_area", this->drawing_area);
+    this->builder->get_widget("scale_x", this->scale_x);
+    this->builder->get_widget("scale_y", this->scale_y);
+    this->builder->get_widget("text_view_results", this->text_view_results);
+    this->builder->get_widget("tree_view_results", this->tree_view_results);
+    this->function_store = Glib::RefPtr<Gtk::ListStore>::cast_dynamic(this->builder->get_object("function_store"));
+    this->tree_view_results->set_model(this->function_store);
+    this->builder->get_widget("button_derive", this->button_derive);
+    this->builder->get_widget("button_delete", this->button_delete);
 
     // setup event handlers
-    this->entryFunction->signal_key_release_event().connect([this] (GdkEventKey *key) {
-        this->entryFunction->get_style_context()->remove_class("invalid");
-        Glib::ustring text = this->entryFunction->get_text();
+    this->entry_function->signal_key_release_event().connect([this] (GdkEventKey *key) {
+        this->entry_function->get_style_context()->remove_class("invalid");
+        Glib::ustring text = this->entry_function->get_text();
         if(key->keyval == KEYCODE_ENTER) {
             if(!text.empty() && Parser::validate(text)) {
-                Gtk::TreeRow row = *this->functionStore->append();
-                row[this->functionColumns.name] = std::string(1, this->next_name);
+                Gtk::TreeRow row = *this->function_store->append();
+                row[this->function_columns.name] = std::string(1, this->next_name);
                 this->next_name++;
-                row[this->functionColumns.function] = Parser::parse(text)->simplify();
-                row[this->functionColumns.text] = (*row[this->functionColumns.function]).to_string();
+                row[this->function_columns.function] = Parser::parse(text)->simplify();
+                row[this->function_columns.text] = (*row[this->function_columns.function]).to_string();
 
-                this->entryFunction->set_text("");
+                this->entry_function->set_text("");
                 this->redraw();
             }
             else {
-                this->entryFunction->get_style_context()->add_class("invalid");
+                this->entry_function->get_style_context()->add_class("invalid");
             }
         }
         return false;
     });
 
-    this->buttonDerive->signal_clicked().connect([this] () {
-        Gtk::TreeRow row = *this->treeViewResults->get_selection()->get_selected();
+    this->button_derive->signal_clicked().connect([this] () {
+        Gtk::TreeRow row = *this->tree_view_results->get_selection()->get_selected();
         if(row) {
-            this->buttonDerive->set_state(Gtk::STATE_INSENSITIVE);
+            this->button_derive->set_state(Gtk::STATE_INSENSITIVE);
             std::thread derive([this, row] () {
-                Operand* derivative = ((Operand*)row[this->functionColumns.function])->derive();
-                Glib::ustring name = row[this->functionColumns.name] + "'";
-                Gtk::TreeRow append = *this->functionStore->append();
-                append[this->functionColumns.name] = name;
-                append[this->functionColumns.text] = derivative->to_string();
-                append[this->functionColumns.function] = derivative;
+                Operand* derivative = ((Operand*)row[this->function_columns.function])->derive();
+                Glib::ustring name = row[this->function_columns.name] + "'";
+                Gtk::TreeRow append = *this->function_store->append();
+                append[this->function_columns.name] = name;
+                append[this->function_columns.text] = derivative->to_string();
+                append[this->function_columns.function] = derivative;
                 this->redraw();
                 Glib::signal_idle().connect([this] () {
-                    this->buttonDerive->set_state(Gtk::STATE_NORMAL);
+                    this->button_derive->set_state(Gtk::STATE_NORMAL);
                     return false;
                 });
             });
@@ -207,66 +206,69 @@ GUI::GUI() : x_scale(32), y_scale(8), next_name(102), drag_start(0), dragging_x(
         }
     });
 
-    this->buttonDelete->signal_clicked().connect([this]() {
-        Gtk::TreeIter row = this->treeViewResults->get_selection()->get_selected();
+    this->button_delete->signal_clicked().connect([this]() {
+        Gtk::TreeIter row = this->tree_view_results->get_selection()->get_selected();
         if(row) {
-            this->functionStore->erase(row);
+            this->function_store->erase(row);
             this->redraw();
         }
     });
 
-    this->scaleX->signal_button_release_event().connect([this](GdkEventButton *event) {
+    this->scale_x->signal_button_release_event().connect([this](GdkEventButton *event) {
         if(event->button == BUTTONCODE_MOUSE_LEFT) {
-            this->x_scale = this->scaleX->get_adjustment()->get_value();
+            this->x_scale_val = this->scale_x->get_adjustment()->get_value();
             this->redraw();
         }
         return false;
     });
 
-    this->scaleY->signal_button_release_event().connect([this](GdkEventButton *event) {
+    this->scale_y->signal_button_release_event().connect([this](GdkEventButton *event) {
         if(event->button == BUTTONCODE_MOUSE_LEFT) {
-            this->y_scale = this->scaleY->get_adjustment()->get_value();
+            this->y_scale_val = this->scale_y->get_adjustment()->get_value();
             this->redraw();
         }
         return false;
     });
 
-    this->drawingArea->signal_size_allocate().connect([this](Gdk::Rectangle allocation) {
+    this->drawing_area->signal_size_allocate().connect([this](Gdk::Rectangle allocation) {
         this->image.pixbuf = Gdk::Pixbuf::create(Gdk::COLORSPACE_RGB, 0, 8, allocation.get_width(), allocation.get_height());
         this->redraw();
     });
 
-    this->drawingArea->signal_draw().connect([this](const Cairo::RefPtr<Cairo::Context> &context) {
+    this->drawing_area->signal_draw().connect([this](const Cairo::RefPtr<Cairo::Context> &context) {
         Gdk::Cairo::set_source_pixbuf(context, this->image.pixbuf, 0, 0);
         context->rectangle(0, 0, this->image.pixbuf->get_width(), this->image.pixbuf->get_height());
         context->fill();
         return true;
     });
 
-    this->drawingArea->add_events(Gdk::EventMask::POINTER_MOTION_MASK | Gdk::EventMask::BUTTON_PRESS_MASK | Gdk::EventMask::BUTTON_RELEASE_MASK);
-    this->drawingArea->signal_motion_notify_event().connect([this] (GdkEventMotion *motion) {
+    this->drawing_area->add_events(Gdk::EventMask::POINTER_MOTION_MASK | Gdk::EventMask::BUTTON_PRESS_MASK | Gdk::EventMask::BUTTON_RELEASE_MASK);
+    this->drawing_area->signal_motion_notify_event().connect([this] (GdkEventMotion *motion) {
         if(!(this->dragging_x || this->dragging_y)) {
             int height = this->image.pixbuf->get_height();
             int width = this->image.pixbuf->get_width();
 
             if(motion->y > height / 2 - 20 && motion->y < height / 2 + 20 && motion->x > width / 2 - 20 && motion->x < width / 2 + 20) {
-                this->drawingArea->get_window()->set_cursor(Gdk::Cursor::create(Gdk::CursorType::LEFT_PTR));
+                this->drawing_area->get_window()->set_cursor(Gdk::Cursor::create(Gdk::CursorType::LEFT_PTR));
             }
             else if(motion->y > height / 2 - 5 && motion->y < height / 2 + 5) {
-                this->drawingArea->get_window()->set_cursor(Gdk::Cursor::create(Gdk::CursorType::SB_H_DOUBLE_ARROW));
+                this->drawing_area->get_window()->set_cursor(Gdk::Cursor::create(Gdk::CursorType::SB_H_DOUBLE_ARROW));
             }
             else if(motion->x > width / 2 - 5 && motion->x < width / 2 + 5) {
-                this->drawingArea->get_window()->set_cursor(Gdk::Cursor::create(Gdk::CursorType::SB_V_DOUBLE_ARROW));
+                this->drawing_area->get_window()->set_cursor(Gdk::Cursor::create(Gdk::CursorType::SB_V_DOUBLE_ARROW));
             }
             else {
-                this->drawingArea->get_window()->set_cursor(Gdk::Cursor::create(Gdk::CursorType::LEFT_PTR));
+                this->drawing_area->get_window()->set_cursor(Gdk::Cursor::create(Gdk::CursorType::LEFT_PTR));
             }
+        }
+        else {
+            this->drag_update(motion->x, motion->y);
         }
 
         return false;
     });
 
-    this->drawingArea->signal_button_press_event().connect([this] (GdkEventButton *button) {
+    this->drawing_area->signal_button_press_event().connect([this] (GdkEventButton *button) {
         int height = this->image.pixbuf->get_height();
         int width = this->image.pixbuf->get_width();
 
@@ -283,39 +285,50 @@ GUI::GUI() : x_scale(32), y_scale(8), next_name(102), drag_start(0), dragging_x(
         return false;
     });
 
-    this->drawingArea->signal_button_release_event().connect([this] (GdkEventButton *button) {
+    this->drawing_area->signal_button_release_event().connect([this] (GdkEventButton *button) {
         if(button->button == BUTTONCODE_MOUSE_LEFT && (this->dragging_x || this->dragging_y)) {
-            double long pos = this->dragging_x ? button->x : button->y;
-            double long max = this->dragging_x ? this->image.pixbuf->get_width() : this->image.pixbuf->get_height();
-            double long diff = this->drag_start < max / 2 ? -(pos - this->drag_start) : pos - this->drag_start;
-            double long zoom_factor = 1 + diff / max;
-            if(this->dragging_x) {
-                this->scaleX->set_value(this->scaleX->get_value() * zoom_factor);
-                this->x_scale = this->scaleX->get_value();
-            }
-            else {
-                this->scaleY->set_value(this->scaleY->get_value() * zoom_factor);
-                this->y_scale = this->scaleY->get_value();
-            }
-            this->redraw();
+            this->drag_update(button->x, button->y);
             this->dragging_x = false;
             this->dragging_y = false;
         }
         return false;
     });
+
+    // the idle signal is thread-safe
+    Glib::signal_idle().connect([this] () {
+        if(this->render_queue.size()) {
+            this->image.pixbuf = this->render_queue.front();
+            this->render_queue.pop();
+            this->drawing_area->queue_draw();
+        }
+        return true;
+    });
 }
 GUI::~GUI() {}
 void GUI::redraw() {
-    int width  = this->image.pixbuf->get_width();
-    int height = this->image.pixbuf->get_height();
-    if(width && height && !this->working) {
+    if(!this->working) {
+        this->working = true;
+        int width  = this->image.pixbuf->get_width();
+        int height = this->image.pixbuf->get_height();
         std::thread draw_thread([this, width, height] () {
-            this->working = true;
-            this->image.pixbuf = this->image.draw_functions(this->functionStore, width, height, this->x_scale, this->y_scale);
-            this->drawingArea->queue_draw();
+            this->render_queue.push(this->image.draw_functions(this->function_store, width, height, this->x_scale_val, this->y_scale_val));
             this->working = false;
         });
         draw_thread.detach();
     }
 }
-
+void GUI::drag_update(int x, int y) {
+    double long pos = this->dragging_x ? x : y;
+    double long max = this->dragging_x ? this->image.pixbuf->get_width() : this->image.pixbuf->get_height();
+    double long diff = this->drag_start < max / 2 ? -(pos - this->drag_start) : pos - this->drag_start;
+    double long zoom_factor = 1 + diff / max;
+    if(this->dragging_x) {
+        this->scale_x->set_value(this->scale_x->get_value() * zoom_factor);
+        this->x_scale_val = this->scale_x->get_value();
+    }
+    else {
+        this->scale_y->set_value(this->scale_y->get_value() * zoom_factor);
+        this->y_scale_val = this->scale_y->get_value();
+    }
+    this->redraw();
+}
