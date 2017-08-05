@@ -5,5 +5,5 @@
 int main(int argc, char *argv[]) {
     auto app = Gtk::Application::create(argc, argv);
     GUI  gui;
-    return app->run(*gui.windowRoot);
+    return app->run(*gui.window_root);
 }
