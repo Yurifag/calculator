@@ -141,27 +141,27 @@ FunctionColumns::FunctionColumns() {
 }
 
 GUI::GUI() : x_scale(1.0L / 30.0L), y_scale(1.0L / 30.0L), next_name(102), drag_start(0), drag_start_scale(1), dragging_x(false), dragging_y(false), working(false) {
-    /**
-     * initialize GUI elements
-     */
+    // --- setup GUI elements ---
     this->builder = Gtk::Builder::create_from_resource("/org/gtk/calc/calc.glade");
-    this->builder->get_widget("window_root", this->window_root);
+    this->builder->get_widget("window_root",       this->window_root);
+    this->builder->get_widget("entry_function",    this->entry_function);
+    this->builder->get_widget("drawing_area",      this->drawing_area);
+    this->builder->get_widget("text_view_results", this->text_view_results);
+    this->builder->get_widget("tree_view_results", this->tree_view_results);
+    this->builder->get_widget("button_derive",     this->button_derive);
+    this->builder->get_widget("button_delete",     this->button_delete);
 
+    // --- setup view models ---
+    this->function_store = Glib::RefPtr<Gtk::ListStore>::cast_dynamic(this->builder->get_object("function_store"));
+    this->tree_view_results->set_model(this->function_store);
+
+    // --- setup widget style ---
     Glib::RefPtr<Gtk::CssProvider> css = Gtk::CssProvider::create();
     css->load_from_resource("/org/gtk/calc/calc.css");
     Glib::RefPtr<Gtk::StyleContext> style = Gtk::StyleContext::create();
     style->add_provider_for_screen(this->window_root->get_screen(), css, GTK_STYLE_PROVIDER_PRIORITY_USER);
 
-    this->builder->get_widget("entry_function", this->entry_function);
-    this->builder->get_widget("drawing_area", this->drawing_area);
-    this->builder->get_widget("text_view_results", this->text_view_results);
-    this->builder->get_widget("tree_view_results", this->tree_view_results);
-    this->function_store = Glib::RefPtr<Gtk::ListStore>::cast_dynamic(this->builder->get_object("function_store"));
-    this->tree_view_results->set_model(this->function_store);
-    this->builder->get_widget("button_derive", this->button_derive);
-    this->builder->get_widget("button_delete", this->button_delete);
-
-    // setup event handlers
+    // --- setup event handlers ---
     this->entry_function->signal_key_release_event().connect([this] (GdkEventKey *key) {
         this->entry_function->get_style_context()->remove_class("invalid");
         Glib::ustring text = this->entry_function->get_text();
@@ -212,11 +212,17 @@ GUI::GUI() : x_scale(1.0L / 30.0L), y_scale(1.0L / 30.0L), next_name(102), drag_
         }
     });
 
+    // --- setup drawing area events ---
+    // listen to these additional events
+    this->drawing_area->add_events(Gdk::EventMask::POINTER_MOTION_MASK | Gdk::EventMask::BUTTON_PRESS_MASK | Gdk::EventMask::BUTTON_RELEASE_MASK);
+
+    // redraw on (window) resize
     this->drawing_area->signal_size_allocate().connect([this](Gdk::Rectangle allocation) {
         this->image.pixbuf = Gdk::Pixbuf::create(Gdk::COLORSPACE_RGB, 0, 8, allocation.get_width(), allocation.get_height());
         this->redraw();
     });
 
+    // copy pixel data to drawing area context
     this->drawing_area->signal_draw().connect([this](const Cairo::RefPtr<Cairo::Context> &context) {
         Gdk::Cairo::set_source_pixbuf(context, this->image.pixbuf, 0, 0);
         context->rectangle(0, 0, this->image.pixbuf->get_width(), this->image.pixbuf->get_height());
@@ -224,9 +230,10 @@ GUI::GUI() : x_scale(1.0L / 30.0L), y_scale(1.0L / 30.0L), next_name(102), drag_
         return true;
     });
 
-    this->drawing_area->add_events(Gdk::EventMask::POINTER_MOTION_MASK | Gdk::EventMask::BUTTON_PRESS_MASK | Gdk::EventMask::BUTTON_RELEASE_MASK);
-    this->drawing_area->signal_motion_notify_event().connect([this] (GdkEventMotion *motion) {
+    this->drawing_area->signal_motion_notify_event().connect([this] (GdkEventMotion* motion) {
         if(!(this->dragging_x || this->dragging_y)) {
+            // change pointer style when hovering over drawing area
+
             int height = this->image.pixbuf->get_height();
             int width = this->image.pixbuf->get_width();
 
@@ -244,6 +251,8 @@ GUI::GUI() : x_scale(1.0L / 30.0L), y_scale(1.0L / 30.0L), next_name(102), drag_
             }
         }
         else {
+            // coordinate system is being scaled by user, update UI
+
             this->drag_update(motion->x, motion->y);
         }
 
@@ -255,6 +264,8 @@ GUI::GUI() : x_scale(1.0L / 30.0L), y_scale(1.0L / 30.0L), next_name(102), drag_
         int width = this->image.pixbuf->get_width();
 
         if(button->button == BUTTONCODE_MOUSE_LEFT && !(button->y > height / 2 - 20 && button->y < height / 2 + 20 && button->x > width / 2 - 20 && button->x < width / 2 + 20)) {
+            // user started scaling coordinate system
+
             if(button->y > height / 2 - 5 && button->y < height / 2 + 5) {
                 this->dragging_x = true;
                 this->drag_start = button->x;
@@ -271,6 +282,8 @@ GUI::GUI() : x_scale(1.0L / 30.0L), y_scale(1.0L / 30.0L), next_name(102), drag_
 
     this->drawing_area->signal_button_release_event().connect([this] (GdkEventButton *button) {
         if(button->button == BUTTONCODE_MOUSE_LEFT && (this->dragging_x || this->dragging_y)) {
+            // user finished scaling coordinate system
+
             this->drag_update(button->x, button->y);
             this->dragging_x = false;
             this->dragging_y = false;
