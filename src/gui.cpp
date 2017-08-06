@@ -53,7 +53,7 @@ void Image::clear() {
         }
     }
 }
-Glib::RefPtr<Gdk::Pixbuf> Image::draw_functions(Glib::RefPtr<Gtk::ListStore> function_store, const int width, const int height, const int scale_x, const int scale_y) {
+Glib::RefPtr<Gdk::Pixbuf> Image::draw_functions(Glib::RefPtr<Gtk::ListStore> function_store, const int width, const int height, const long double scale_x, const long double scale_y) {
     int                      x, y, x_iter, y_iter, margin, i, i2, diff;
     Operand*                 function;
     Image                    image(width, height);
@@ -71,7 +71,7 @@ Glib::RefPtr<Gdk::Pixbuf> Image::draw_functions(Glib::RefPtr<Gtk::ListStore> fun
             if(x % 30 == 0 && (y > -3 && y < 3)) {
                 image.set_pixel(x_iter, y_iter);
                 if(y == 0 && x != 0) {
-                    label = std::to_string((long double)x / scale_x);
+                    label = std::to_string(scale_x * ((long double)x));
                     label = label.substr(0, label.find(".") + 3);
                     margin = label.size() * 4 - 8;
                     image.draw_string(label, x_iter - margin, y_iter + 4);
@@ -80,7 +80,7 @@ Glib::RefPtr<Gdk::Pixbuf> Image::draw_functions(Glib::RefPtr<Gtk::ListStore> fun
             else if(y % 30 == 0 && (x > -3 && x < 3)) {
                 image.set_pixel(x_iter, y_iter);
                 if(y != 0 && x == 0) {
-                    label = std::to_string(((long double)y) / scale_y);
+                    label = std::to_string(scale_y * ((long double)y));
                     label = label.substr(0, label.find(".") + 3);
                     image.draw_string(label, x_iter - label.size() * 4 - 4, height - y_iter - 2);
                 }
@@ -102,7 +102,7 @@ Glib::RefPtr<Gdk::Pixbuf> Image::draw_functions(Glib::RefPtr<Gtk::ListStore> fun
             int x, y;
             std::vector<int> values;
             for(x = 0; x < width; ++x) {
-                y = scale_y * function->calc(((long double)(x - width / 2)) / scale_x);
+                y = function->calc(scale_x * ((long double)(x - width / 2))) / scale_y;
                 values.push_back(y);
             }
             promise.set_value(values);
@@ -140,7 +140,7 @@ FunctionColumns::FunctionColumns() {
     this->add(this->zero);
 }
 
-GUI::GUI() : x_scale_val(32), y_scale_val(8), next_name(102), drag_start(0), dragging_x(false), dragging_y(false), working(false) {
+GUI::GUI() : x_scale(1.0L / 30.0L), y_scale(1.0L / 30.0L), next_name(102), drag_start(0), drag_start_scale(1), dragging_x(false), dragging_y(false), working(false) {
     /**
      * initialize GUI elements
      */
@@ -154,8 +154,6 @@ GUI::GUI() : x_scale_val(32), y_scale_val(8), next_name(102), drag_start(0), dra
 
     this->builder->get_widget("entry_function", this->entry_function);
     this->builder->get_widget("drawing_area", this->drawing_area);
-    this->builder->get_widget("scale_x", this->scale_x);
-    this->builder->get_widget("scale_y", this->scale_y);
     this->builder->get_widget("text_view_results", this->text_view_results);
     this->builder->get_widget("tree_view_results", this->tree_view_results);
     this->function_store = Glib::RefPtr<Gtk::ListStore>::cast_dynamic(this->builder->get_object("function_store"));
@@ -214,22 +212,6 @@ GUI::GUI() : x_scale_val(32), y_scale_val(8), next_name(102), drag_start(0), dra
         }
     });
 
-    this->scale_x->signal_button_release_event().connect([this](GdkEventButton *event) {
-        if(event->button == BUTTONCODE_MOUSE_LEFT) {
-            this->x_scale_val = this->scale_x->get_adjustment()->get_value();
-            this->redraw();
-        }
-        return false;
-    });
-
-    this->scale_y->signal_button_release_event().connect([this](GdkEventButton *event) {
-        if(event->button == BUTTONCODE_MOUSE_LEFT) {
-            this->y_scale_val = this->scale_y->get_adjustment()->get_value();
-            this->redraw();
-        }
-        return false;
-    });
-
     this->drawing_area->signal_size_allocate().connect([this](Gdk::Rectangle allocation) {
         this->image.pixbuf = Gdk::Pixbuf::create(Gdk::COLORSPACE_RGB, 0, 8, allocation.get_width(), allocation.get_height());
         this->redraw();
@@ -276,10 +258,12 @@ GUI::GUI() : x_scale_val(32), y_scale_val(8), next_name(102), drag_start(0), dra
             if(button->y > height / 2 - 5 && button->y < height / 2 + 5) {
                 this->dragging_x = true;
                 this->drag_start = button->x;
+                this->drag_start_scale = this->x_scale;
             }
             else if(button->x > width / 2 - 5 && button->x < width / 2 + 5) {
                 this->dragging_y = true;
                 this->drag_start = button->y;
+                this->drag_start_scale = this->y_scale;
             }
         }
         return false;
@@ -293,16 +277,6 @@ GUI::GUI() : x_scale_val(32), y_scale_val(8), next_name(102), drag_start(0), dra
         }
         return false;
     });
-
-    // the idle signal is thread-safe
-    Glib::signal_idle().connect([this] () {
-        if(this->render_queue.size()) {
-            this->image.pixbuf = this->render_queue.front();
-            this->render_queue.pop();
-            this->drawing_area->queue_draw();
-        }
-        return true;
-    });
 }
 GUI::~GUI() {}
 void GUI::redraw() {
@@ -311,7 +285,15 @@ void GUI::redraw() {
         int width  = this->image.pixbuf->get_width();
         int height = this->image.pixbuf->get_height();
         std::thread draw_thread([this, width, height] () {
-            this->render_queue.push(this->image.draw_functions(this->function_store, width, height, this->x_scale_val, this->y_scale_val));
+            Glib::RefPtr<Gdk::Pixbuf> pixbuf = this->image.draw_functions(this->function_store, width, height, this->x_scale, this->y_scale);
+
+            // the idle signal is thread-safe
+            Glib::signal_idle().connect([this, pixbuf] () {
+                this->image.pixbuf = pixbuf;
+                this->drawing_area->queue_draw();
+                return false;
+            });
+
             this->working = false;
         });
         draw_thread.detach();
@@ -319,16 +301,15 @@ void GUI::redraw() {
 }
 void GUI::drag_update(int x, int y) {
     double long pos = this->dragging_x ? x : y;
-    double long max = this->dragging_x ? this->image.pixbuf->get_width() : this->image.pixbuf->get_height();
-    double long diff = this->drag_start < max / 2 ? -(pos - this->drag_start) : pos - this->drag_start;
-    double long zoom_factor = 1 + diff / max;
-    if(this->dragging_x) {
-        this->scale_x->set_value(this->scale_x->get_value() * zoom_factor);
-        this->x_scale_val = this->scale_x->get_value();
+    double long offset = this->dragging_x ? this->image.pixbuf->get_width() / 2 : this->image.pixbuf->get_height() / 2;
+    if((this->drag_start - offset > 0 && pos - offset > 0) || (this->drag_start - offset < 0 && pos - offset < 0)) {
+        double long ratio = this->drag_start_scale * ((this->drag_start - offset) / (pos - offset));
+        if(this->dragging_x) {
+            this->x_scale = ratio;
+        }
+        else {
+            this->y_scale = ratio;
+        }
+        this->redraw();
     }
-    else {
-        this->scale_y->set_value(this->scale_y->get_value() * zoom_factor);
-        this->y_scale_val = this->scale_y->get_value();
-    }
-    this->redraw();
 }

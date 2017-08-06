@@ -8,8 +8,8 @@
 namespace util {
     const int KEYCODE_ENTER = 65293;
     const int BUTTONCODE_MOUSE_LEFT = 1;
-    const long double pi = 3.1415926535897932384626433832795;
-    const long double e  = 2.7182818284590452353602874713527;
+    const long double pi = 3.1415926535897932384626433832795L;
+    const long double e  = 2.7182818284590452353602874713527L;
 
     void print(Glib::ustring text) {
         std::cout << text << "\n";

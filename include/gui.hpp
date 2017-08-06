@@ -3,7 +3,6 @@
 #include <atomic>
 #include <expression.hpp>
 #include <gtkmm.h>
-#include <queue>
 
 class Image {
   public:
@@ -19,7 +18,7 @@ class Image {
     void draw_string(const Glib::ustring s, const long double x, const long double y);
     void flip(const bool horizontally);
     void clear();
-    Glib::RefPtr<Gdk::Pixbuf> draw_functions(Glib::RefPtr<Gtk::ListStore> function_store, const int width, const int height, const int scale_x, const int scale_y);
+    Glib::RefPtr<Gdk::Pixbuf> draw_functions(Glib::RefPtr<Gtk::ListStore> function_store, const int width, const int height, const long double scale_x, const long double scale_y);
 };
 
 class FunctionColumns : public Gtk::TreeModel::ColumnRecord {
@@ -40,22 +39,20 @@ class GUI {
     Gtk::Grid*                            grid_main;
     Gtk::Entry*                           entry_function;
     Gtk::DrawingArea*                     drawing_area;
-    Gtk::Scale*                           scale_x;
-    Gtk::Scale*                           scale_y;
     Gtk::TextView*                        text_view_results;
     Gtk::TreeView*                        tree_view_results;
     FunctionColumns                       function_columns;
     Glib::RefPtr<Gtk::ListStore>          function_store;
     Gtk::Button*                          button_derive;
     Gtk::Button*                          button_delete;
-    int                                   x_scale_val;
-    int                                   y_scale_val;
+    long double                           x_scale;
+    long double                           y_scale;
     int                                   next_name;
-    int                                   drag_start;
+    long double                           drag_start;
+    long double                           drag_start_scale;
     bool                                  dragging_x;
     bool                                  dragging_y;
     std::atomic<bool>                     working;
-    std::queue<Glib::RefPtr<Gdk::Pixbuf>> render_queue;
 
     GUI();
     ~GUI();

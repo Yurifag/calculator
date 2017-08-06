@@ -87,7 +87,9 @@ Operand* Parser::create_expression(std::vector<Glib::ustring> matches) {
     }
     throw std::invalid_argument(str(matches) + " is not a valid expression!");
 }
-
+bool Parser::omitted_multiplication(Glib::ustring match1, Glib::ustring match2) {
+    return !(Operator::is_operator(match1) || match1 == "(" || Operator::is_operator(match2) || match2 == "(" || match2 == ")");
+}
 Operand* Parser::parse(Glib::ustring text) {
     text = text.lowercase();
     std::vector<Glib::ustring> matches;
@@ -96,13 +98,13 @@ Operand* Parser::parse(Glib::ustring text) {
     if(match_info.get_match_count()) {
         do {
             Glib::ustring match = match_info.fetch(0);
-            if(!(Operator::is_operator(match) || match == "(") && matches.size() && !Operator::is_operator(matches[matches.size() - 1])) {
+            if(matches.size() && Parser::omitted_multiplication(matches[matches.size() - 1], match)) {
                 matches.push_back("*");
             }
             matches.push_back(match);
         } while(match_info.next());
-
         matches = reverse(matches);
+
         std::vector<int> opening;
         std::vector<int> closing;
         int              i;
