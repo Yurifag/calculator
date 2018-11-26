@@ -7,8 +7,8 @@ SRC              := src
 BIN              := bin
 RES              := res
 
-INCLUDEDIRS      := $(shell pkg-config gtkmm-3.0 gloox --cflags) -Iinclude/
-LIBS             := $(shell pkg-config gtkmm-3.0 gloox --libs)
+INCLUDEDIRS      := $(shell pkg-config gtkmm-3.0 --cflags) -Iinclude/
+LIBS             := $(shell pkg-config gtkmm-3.0 --libs)
 LDFLAGS          := $(LIBS)
 
 R_SOURCE         := $(subst $(RES)/,,$(wildcard $(RES)/*.gresource.xml))
@@ -19,7 +19,7 @@ CPP_SOURCE       := $(SRC)/%.cpp
 CXXSOURCES       := $(call rwildcard,$(SRC),*.cpp)
 CXXOBJECTS       := $(CXXSOURCES:$(CPP_SOURCE)=$(OBJECT))
 CXXFLAGS         := $(INCLUDEDIRS) -std=gnu++14 $(DEBUG) -MMD
-CXX              := g++-7
+CXX              := g++
 
 DEPENDENCIES     := $(CXXSOURCES:.cpp=.d)
 EXECUTABLE       := $(BIN)/calc
